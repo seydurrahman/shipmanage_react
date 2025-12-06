@@ -80,7 +80,7 @@ const BarChartComponent = React.memo(
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
-            All Ships
+            All Ship
           </button>
           {ships.map((ship) => (
             <button
