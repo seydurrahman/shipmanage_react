@@ -1,28 +1,33 @@
 import axios from "axios";
 
-const isDevelopment = import.meta.env.MODE === "development";
-
-const myBaseURL = isDevelopment
-  ? import.meta.env.VITE_API_BASE_URL
-  : import.meta.env.VITE_API_BASE_URL_DEPLOY;
-
 const api = axios.create({
-  baseURL: myBaseURL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 5000,
   headers: {
     "Content-Type": "application/json",
-  },
-  accept: "application/json",
-  withCredentials: false, // No login yet
+  }
 });
 
 export default api;
 
+
 // import axios from "axios";
 
+// const isDevelopment = import.meta.env.MODE === "development";
+
+// const myBaseURL = isDevelopment
+//   ? import.meta.env.VITE_API_BASE_URL
+//   : import.meta.env.VITE_API_BASE_URL_DEPLOY;
+
 // const api = axios.create({
-//   baseURL: import.meta.env.VITE_API_BASE_URL,
+//   baseURL: myBaseURL,
+//   timeout: 5000,
+//   headers: {
+//     "Content-Type": "application/json",
+//   },
+//   accept: "application/json",
 //   withCredentials: false, // No login yet
 // });
 
 // export default api;
+
