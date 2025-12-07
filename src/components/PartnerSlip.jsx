@@ -128,11 +128,11 @@ const PartnerReport = () => {
         </div>
 
         {/* Slip Grid */}
-        <div className="grid grid-cols-2 gap-4 print:grid-cols-2">
+        <div id="print-area" className="grid grid-cols-3 gap-4">
           {slips.map((slip, index) => (
             <div
               key={index}
-              className="border p-3 rounded shadow-sm text-sm h-48 flex flex-col justify-between page-break-slip"
+              className="border p-3 rounded shadow-sm text-sm h-48 flex flex-col justify-between print-slip"
             >
               <div>
                 <p>
@@ -142,7 +142,7 @@ const PartnerReport = () => {
                   <strong>Purchase Cost:</strong> {slip.purchaseCost}
                 </p>
 
-                <p>
+                <p className="bg-purple-500 text-white text-center">
                   <strong>Partner Name:</strong> {slip.partnerName}
                 </p>
                 <p>
@@ -157,7 +157,7 @@ const PartnerReport = () => {
                 </p>
               </div>
 
-              <p className="font-bold text-right">
+              <p className="font-bold text-center  text-gray-800 bg-gray-300">
                 Payable: Tk {slip.payable.toFixed(2)}
               </p>
             </div>

@@ -21,7 +21,25 @@ body {
 }
 
 @media print {
-  .page-break-slip:nth-child(8n) {
-    page-break-after: always;
+  body * {
+    visibility: hidden;            /* Hide everything */
+  }
+
+  #print-area, #print-area * {
+    visibility: visible !important; /* Show only slips */
+  }
+
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+  .print-slip {
+    page-break-inside: avoid;
   }
 }
