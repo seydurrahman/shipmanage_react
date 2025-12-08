@@ -1,4 +1,3 @@
-// src/components/Dashboard.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import api from "../api/axios";
 import {
@@ -9,87 +8,69 @@ import {
   eachDayOfInterval,
 } from "date-fns";
 
-// Bar Chart Component
+/* ============================================================
+   RESPONSIVE BAR CHART (Scrolls on Mobile)
+   ============================================================ */
 const BarChartComponent = React.memo(
   ({ ships, dailyIncomes, selectedDate }) => {
     const [selectedShip, setSelectedShip] = useState(null);
     const [scrollPosition, setScrollPosition] = useState(0);
 
-    // Get all days in the month
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-    // Show only 7 days at a time (based on scroll position)
     const daysPerView = 7;
     const displayedDays = daysInMonth.slice(
       scrollPosition,
       scrollPosition + daysPerView
     );
 
-    // Group incomes by ship and date
     const chartData = ships.map((ship) => {
-      const shipIncomes = displayedDays.map((day) => {
-        const dateStr = format(day, "yyyy-MM-dd");
-        const dayIncomes = dailyIncomes.filter(
-          (inc) => inc.ship === ship.id && inc.date === dateStr
+      const values = displayedDays.map((day) => {
+        const dayStr = format(day, "yyyy-MM-dd");
+        const incomes = dailyIncomes.filter(
+          (i) => i.ship === ship.id && i.date === dayStr
         );
-        return dayIncomes.reduce(
-          (sum, inc) => sum + parseFloat(inc.amount || 0),
-          0
-        );
+        return incomes.reduce((s, x) => s + parseFloat(x.amount || 0), 0);
       });
-      return { ship: ship.name, shipId: ship.id, data: shipIncomes };
+      return { ship: ship.name, shipId: ship.id, data: values };
     });
 
-    // Filter by selected ship if any
-    const filteredChartData = selectedShip
+    const filteredChart = selectedShip
       ? chartData.filter((d) => d.shipId === selectedShip)
       : chartData;
 
-    // Colors for each ship
-    const colors = [
-      "#3b82f6",
-      "#ef4444",
-      "#10b981",
-      "#f59e0b",
-      "#8b5cf6",
-      "#06b6d4",
-    ];
+    const colors = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6"];
 
-    // Scroll handlers
-    const handleScrollLeft = () => {
-      setScrollPosition(Math.max(0, scrollPosition - 1));
-    };
+    const scrollLeft = () => setScrollPosition(Math.max(0, scrollPosition - 1));
 
-    const handleScrollRight = () => {
+    const scrollRight = () =>
       setScrollPosition(
         Math.min(daysInMonth.length - daysPerView, scrollPosition + 1)
       );
-    };
 
     return (
-      <div>
-        {/* Ship Filter Buttons */}
-        <div className="mb-4 flex flex-wrap gap-2">
+      <div className="space-y-4">
+        {/* FILTER BUTTONS */}
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setSelectedShip(null)}
-            className={`px-4 py-2 rounded font-semibold transition ${
-              selectedShip === null
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            className={`px-3 py-1 rounded ${
+              selectedShip === null ? "bg-blue-600 text-white" : "bg-gray-200"
             }`}
           >
-            All Ship
+            All Ships
           </button>
+
           {ships.map((ship) => (
             <button
               key={ship.id}
               onClick={() => setSelectedShip(ship.id)}
-              className={`px-4 py-2 rounded font-semibold transition ${
+              className={`px-3 py-1 rounded ${
                 selectedShip === ship.id
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  : "bg-gray-200"
               }`}
             >
               {ship.name}
@@ -97,401 +78,261 @@ const BarChartComponent = React.memo(
           ))}
         </div>
 
-        {/* Chart with Navigation */}
-        <div className="flex items-center gap-4">
-          {/* Left Scroll Button */}
+        {/* CHART */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={handleScrollLeft}
+            onClick={scrollLeft}
             disabled={scrollPosition === 0}
-            className="px-3 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300 hover:bg-blue-600 transition"
+            className="px-3 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
           >
             ←
           </button>
 
-          {/* Chart */}
-          <div
-            className="flex-1 overflow-hidden"
-            style={{ minHeight: "400px" }}
-          >
-            <svg
-              width="100%"
-              height="400"
-              viewBox={`0 0 ${daysPerView * 80 + 100} 400`}
-            >
-              {/* Y-axis */}
-              <line
-                x1="60"
-                y1="30"
-                x2="60"
-                y2="350"
-                stroke="#333"
-                strokeWidth="2"
-              />
-
-              {/* X-axis */}
-              <line
-                x1="60"
-                y1="350"
-                x2={daysPerView * 80 + 80}
-                y2="350"
-                stroke="#333"
-                strokeWidth="2"
-              />
-
-              {/* Y-axis labels */}
-              {[0, 5000, 10000, 15000, 20000, 25000].map((val, idx) => (
-                <g key={idx}>
-                  <line
-                    x1="55"
-                    y1={350 - (val / 25000) * 300}
-                    x2="60"
-                    y2={350 - (val / 25000) * 300}
-                    stroke="#333"
-                    strokeWidth="1"
-                  />
-                  <text
-                    x="10"
-                    y={350 - (val / 25000) * 300 + 5}
-                    fontSize="12"
-                    fill="#666"
-                  >
-                    {val / 1000}K
-                  </text>
-                </g>
-              ))}
-
-              {/* Grid lines */}
-              {[0, 5000, 10000, 15000, 20000, 25000].map((val, idx) => (
+          {/* ⭐ The wrapper that makes mobile scrolling work */}
+          <div className="overflow-x-auto w-full">
+            <div className="min-w-[700px]">
+              <svg
+                width="100%"
+                height="350"
+                viewBox={`0 0 ${daysPerView * 80 + 100} 350`}
+              >
+                {/* X & Y AXIS */}
                 <line
-                  key={idx}
                   x1="60"
-                  y1={350 - (val / 25000) * 300}
-                  x2={daysPerView * 80 + 80}
-                  y2={350 - (val / 25000) * 300}
-                  stroke="#e5e7eb"
-                  strokeWidth="1"
-                  strokeDasharray="4"
+                  y1="20"
+                  x2="60"
+                  y2="300"
+                  stroke="#666"
+                  strokeWidth="2"
                 />
-              ))}
+                <line
+                  x1="60"
+                  y1="300"
+                  x2={daysPerView * 80 + 80}
+                  y2="300"
+                  stroke="#666"
+                  strokeWidth="2"
+                />
 
-              {/* Bars */}
-              {displayedDays.map((day, dayIdx) => {
-                const x = 80 + dayIdx * 80;
-                let barX = x;
+                {/* BARS */}
+                {displayedDays.map((day, dayIdx) => {
+                  const x = 80 + dayIdx * 80;
+                  let barX = x;
 
-                return (
-                  <g key={dayIdx}>
-                    {filteredChartData.map((shipData, shipIdx) => {
-                      const value = shipData.data[dayIdx];
-                      const barWidth = 15;
-                      const barHeight = (value / 25000) * 300;
-                      const currentBarX = barX;
-                      barX += barWidth + 2;
+                  return (
+                    <g key={dayIdx}>
+                      {filteredChart.map((item, index) => {
+                        const val = item.data[dayIdx];
+                        const barHeight = (val / 25000) * 250;
+                        const barWidth = 15;
 
-                      return (
-                        <g key={shipIdx}>
-                          <rect
-                            x={currentBarX}
-                            y={350 - barHeight}
-                            width={barWidth}
-                            height={barHeight}
-                            fill={colors[shipData.shipId % colors.length]}
-                            opacity="0.8"
-                          />
-                          {value > 0 && (
-                            <text
-                              x={currentBarX + barWidth / 2}
-                              y={350 - barHeight - 5}
-                              fontSize="10"
-                              textAnchor="middle"
-                              fill="#333"
-                            >
-                              {(value / 1000).toFixed(0)}K
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
+                        const currentX = barX;
+                        barX += barWidth + 4;
 
-                    {/* Date label */}
-                    <text
-                      x={x + 30}
-                      y="375"
-                      fontSize="11"
-                      textAnchor="middle"
-                      fill="#666"
-                      transform={`rotate(45, ${x + 30}, 375)`}
-                    >
-                      {format(day, "d-MMM")}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
+                        return (
+                          <g key={index}>
+                            <rect
+                              x={currentX}
+                              y={300 - barHeight}
+                              width={barWidth}
+                              height={barHeight}
+                              fill={colors[index % colors.length]}
+                              opacity="0.8"
+                            />
+
+                            {val > 0 && (
+                              <text
+                                x={currentX + barWidth / 2}
+                                y={300 - barHeight - 5}
+                                textAnchor="middle"
+                                fontSize="10"
+                              >
+                                {(val / 1000).toFixed(0)}K
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+
+                      <text
+                        x={x + 20}
+                        y="330"
+                        transform={`rotate(45, ${x + 20}, 330)`}
+                        fontSize="10"
+                        fill="#666"
+                      >
+                        {format(day, "d-MMM")}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
           </div>
 
-          {/* Right Scroll Button */}
           <button
-            onClick={handleScrollRight}
+            onClick={scrollRight}
             disabled={scrollPosition >= daysInMonth.length - daysPerView}
-            className="px-3 py-2 bg-blue-500 text-white rounded disabled:bg-gray-300 hover:bg-blue-600 transition"
+            className="px-3 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
           >
             →
           </button>
-        </div>
-
-        {/* Legend */}
-        <div className="flex flex-wrap gap-4 mt-4 justify-center">
-          {filteredChartData.map((shipData, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <div
-                className="w-4 h-4 rounded"
-                style={{
-                  backgroundColor: colors[shipData.shipId % colors.length],
-                }}
-              ></div>
-              <span className="text-sm font-semibold">{shipData.ship}</span>
-            </div>
-          ))}
         </div>
       </div>
     );
   }
 );
 
-BarChartComponent.displayName = "BarChartComponent";
+/* ============================================================
+   MAIN DASHBOARD
+   ============================================================ */
 
 const Dashboard = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [dailyIncomes, setDailyIncomes] = useState([]);
-  const [monthlyProfits, setMonthlyProfits] = useState([]);
   const [ships, setShips] = useState([]);
+  const [dailyIncomes, setDailyIncomes] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [profitList, setProfitList] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch ships
+  /* FETCH DATA */
   const fetchShips = useCallback(async () => {
-    try {
-      const response = await api.get("ships/");
-      const shipData = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || [];
-      setShips(shipData);
-    } catch (error) {
-      console.error("Error fetching ships:", error);
-      setShips([]);
-    }
+    const res = await api.get("ships/");
+    setShips(Array.isArray(res.data) ? res.data : res.data.results || []);
   }, []);
 
-  // Fetch all daily incomes
   const fetchDailyIncomes = useCallback(async () => {
-    try {
-      const response = await api.get("incomes/");
-      const incomeData = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || [];
-      setDailyIncomes(incomeData);
-    } catch (error) {
-      console.error("Error fetching daily incomes:", error);
-      setDailyIncomes([]);
-    }
+    const res = await api.get("incomes/");
+    setDailyIncomes(
+      Array.isArray(res.data) ? res.data : res.data.results || []
+    );
   }, []);
 
-  // Fetch all expenses
   const fetchExpenses = useCallback(async () => {
-    try {
-      const response = await api.get("expenses/");
-      const expenseData = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || [];
-      setExpenses(expenseData);
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
-      setExpenses([]);
-    }
+    const res = await api.get("expenses/");
+    setExpenses(Array.isArray(res.data) ? res.data : res.data.results || []);
   }, []);
 
-  // Fetch monthly profits
-  const fetchMonthlyProfits = useCallback(async () => {
-    try {
-      const response = await api.get("profits/");
-      const profitData = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || [];
-      setMonthlyProfits(profitData);
-    } catch (error) {
-      console.error("Error fetching monthly profits:", error);
-      setMonthlyProfits([]);
-    }
+  const fetchProfits = useCallback(async () => {
+    const res = await api.get("profits/");
+    setProfitList(Array.isArray(res.data) ? res.data : res.data.results || []);
   }, []);
 
   useEffect(() => {
     fetchShips();
     fetchDailyIncomes();
     fetchExpenses();
-    fetchMonthlyProfits();
-  }, [fetchShips, fetchDailyIncomes, fetchExpenses, fetchMonthlyProfits]);
+    fetchProfits();
+  }, [fetchShips, fetchDailyIncomes, fetchExpenses, fetchProfits]);
 
-  const calculateProfit = async () => {
-    setLoading(true);
-    try {
-      const monthStr = format(selectedDate, "yyyy-MM");
-      // Calculate profit for all ships
-      const promises = ships.map((ship) =>
-        api.post("profits/calculate_profit/", {
-          ship_id: ship.id,
-          month: monthStr,
-        })
-      );
-      await Promise.all(promises);
-      fetchMonthlyProfits();
-      alert("Profit calculated successfully for all ships!");
-    } catch (error) {
-      alert(
-        "Error calculating profit: " +
-          (error.response?.data?.error || error.message)
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate daily income for selected date
-  const todayIncomes = dailyIncomes.filter(
-    (inc) => inc.date === format(selectedDate, "yyyy-MM-dd")
-  );
-  const todayTotal = todayIncomes.reduce(
-    (sum, inc) => sum + parseFloat(inc.amount || 0),
-    0
-  );
-
-  // Calculate monthly income and expenses for selected month
+  /* DATE BASED COMPUTATION */
+  const todayStr = format(selectedDate, "yyyy-MM-dd");
   const monthStr = format(selectedDate, "yyyy-MM");
-  const monthIncomes = dailyIncomes.filter((inc) =>
-    inc.date?.startsWith(monthStr)
-  );
-  const monthlyTotal = monthIncomes.reduce(
-    (sum, inc) => sum + parseFloat(inc.amount || 0),
-    0
-  );
 
-  const monthExpenses = expenses.filter((exp) =>
-    exp.date?.startsWith(monthStr)
-  );
-  const monthlyExpenseTotal = monthExpenses.reduce(
-    (sum, exp) => sum + parseFloat(exp.amount || 0),
-    0
-  );
+  const todayTotal = dailyIncomes
+    .filter((i) => i.date === todayStr)
+    .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
 
-  // Calculate trend (today vs average daily for month)
-  const avgDailyForMonth =
-    monthIncomes.length > 0 ? monthlyTotal / monthIncomes.length : 0;
-  const trend = todayTotal - avgDailyForMonth;
-  const trendPercent =
-    avgDailyForMonth > 0 ? ((trend / avgDailyForMonth) * 100).toFixed(1) : 0;
+  const monthIncome = dailyIncomes
+    .filter((i) => i.date?.startsWith(monthStr))
+    .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
 
-  // Ship-wise daily income for selected date
-  const shipWiseIncome = ships.map((ship) => ({
-    ship,
-    dayIncome: todayIncomes
-      .filter((inc) => inc.ship === ship.id)
-      .reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0),
-    thisMonthIncome: monthIncomes
-      .filter((inc) => inc.ship === ship.id)
-      .reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0),
-    lastMonthIncome: dailyIncomes
-      .filter(
-        (inc) =>
-          inc.ship === ship.id &&
-          inc.date?.startsWith(format(subMonths(selectedDate, 1), "yyyy-MM"))
+  const monthExpense = expenses
+    .filter((e) => e.date?.startsWith(monthStr))
+    .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+
+  const shipCards = ships.map((ship) => {
+    const dayIncome = dailyIncomes
+      .filter((i) => i.ship === ship.id && i.date === todayStr)
+      .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+
+    const thisMonth = dailyIncomes
+      .filter((i) => i.ship === ship.id && i.date?.startsWith(monthStr))
+      .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
+
+    const lastMonth = dailyIncomes
+      .filter((i) =>
+        i.date?.startsWith(format(subMonths(selectedDate, 1), "yyyy-MM"))
       )
-      .reduce((sum, inc) => sum + parseFloat(inc.amount || 0), 0),
-  }));
+      .filter((i) => i.ship === ship.id)
+      .reduce((s, x) => s + parseFloat(x.amount || 0), 0);
 
+    const trend = lastMonth ? ((thisMonth - lastMonth) / lastMonth) * 100 : 0;
+
+    return { ship, dayIncome, thisMonth, lastMonth, trend };
+  });
+
+  /* VIEW */
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-8xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Ship Management Dashboard
-        </h1>
+    <div className="p-2 md:p-6 bg-gray-100 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        {/* HEADER */}
+        <h1 className="text-3xl md:text-3xl font-bold mb-6">Dashboard</h1>
 
-        {/* Date Selector */}
-        <div className="mb-6 flex text-start">
-          <input
-            type="date"
-            value={format(selectedDate, "yyyy-MM-dd")}
-            onChange={(e) => setSelectedDate(new Date(e.target.value))}
-            className="border rounded px-4 py-2 text-lg"
-          />
-        </div>
+        {/* DATE SELECTOR */}
+        <input
+          type="date"
+          value={format(selectedDate, "yyyy-MM-dd")}
+          onChange={(e) => setSelectedDate(new Date(e.target.value))}
+          className="border px-3 py-2 rounded mb-6"
+        />
 
-        {/* Ship-wise Daily Income */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        {/* ========== SHIP CARDS ========== */}
+        <div className="bg-white shadow-md rounded-lg p-4 mb-6 w-[calc(100vw-4rem)] sm:w-full sm:ml-0">
           <h2 className="text-xl font-semibold mb-4">Ship-wise Income</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {shipWiseIncome.map(
-              ({ ship, dayIncome, thisMonthIncome, lastMonthIncome }) => {
-                const trend = thisMonthIncome - lastMonthIncome;
-                const trendPercent =
-                  lastMonthIncome > 0
-                    ? ((trend / lastMonthIncome) * 100).toFixed(1)
-                    : 0;
 
-                return (
+          {/* Fixed container with proper constraints */}
+          <div className="w-full overflow-x-auto">
+            <div className="grid grid-cols-1 min-[500px]:grid-cols-2 lg:grid-cols-4 gap-4 min-w-0">
+              {shipCards.map(
+                ({ ship, dayIncome, thisMonth, lastMonth, trend }) => (
                   <div
                     key={ship.id}
-                    className="border rounded-lg p-4 hover:shadow-md transition"
+                    className="border border-gray-300 rounded-lg p-4 bg-white shadow-sm min-w-0 flex-shrink-0"
                   >
-                    <h3 className="font-semibold text-gray-800 mb-3 text-lg">
-                      {ship.name}
-                    </h3>
+                    <h3 className="font-semibold truncate">{ship.name}</h3>
 
-                    {/* Day Income */}
-                    <div className="mb-3 pb-3 border-b">
-                      <p className="text-xs text-gray-500">Day Income</p>
-                      <p className="text-xl font-bold text-blue-600">
+                    <div className="mt-2 border-b pb-2">
+                      <p className="text-xs text-gray-500">Today</p>
+                      <p className="text-lg font-bold text-blue-600 truncate">
                         Tk {dayIncome.toFixed(2)}
                       </p>
                     </div>
 
-                    {/* This Month Income */}
-                    <div className="mb-3 pb-3 border-b">
-                      <p className="text-xs text-gray-500">This Month Income</p>
-                      <p className="text-xl font-bold text-green-600">
-                        Tk {thisMonthIncome.toFixed(2)}
+                    <div className="mt-2 border-b pb-2">
+                      <p className="text-xs text-gray-500">This Month</p>
+                      <p className="text-lg font-bold text-green-600 truncate">
+                        Tk {thisMonth.toFixed(2)}
                       </p>
                     </div>
 
-                    {/* Last Month Income + Trend */}
-                    <div>
-                      <p className="text-xs text-gray-500">Last Month Income</p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xl font-bold text-gray-700">
-                          Tk {lastMonthIncome.toFixed(2)}
-                        </p>
-                        <span
-                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold ${
-                            trend >= 0
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {trend >= 0 ? "↑" : "↓"} {Math.abs(trendPercent)}%
-                        </span>
-                      </div>
+                    <div className="mt-2 flex justify-between items-center">
+                      <p className="text-sm font-bold truncate">
+                        Tk {lastMonth.toFixed(2)}
+                      </p>
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-semibold flex-shrink-0 ${
+                          trend >= 0
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(1)}%
+                      </span>
                     </div>
                   </div>
-                );
-              }
-            )}
+                )
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Ship-wise Daily Income Bar Chart */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        {/* ========== BAR CHART ========== */}
+        <div className="bg-white shadow-md rounded-lg p-4 mb-6 w-[calc(100vw-4rem)] sm:w-full sm:ml-0">
           <h2 className="text-xl font-semibold mb-4">
-            Ship-wise Daily Income Chart
+            Daily Income Chart
           </h2>
+
           <BarChartComponent
             ships={ships}
             dailyIncomes={dailyIncomes}
@@ -499,135 +340,126 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Income vs Expenses Comparison */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        {/* ========== MONTHLY SUMMARY ========== */}
+        <div className="bg-white shadow-md rounded-lg p-4 mb-6 w-[calc(100vw-4rem)] sm:w-full sm:ml-0">
           <h2 className="text-xl font-semibold mb-4">
-            Monthly Summary - {format(selectedDate, "MMMM yyyy")}
+            Monthly Summary – {format(selectedDate, "MMMM yyyy")}
           </h2>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Income */}
             <div className="border-l-4 border-green-500 pl-4">
-              <p className="text-gray-600 text-sm">Total Income</p>
-              <p className="text-3xl font-bold text-green-600">
-                Tk {monthlyTotal.toFixed(2)}
+              <p className="text-gray-600">Total Income</p>
+              <p className="text-2xl font-bold text-green-600">
+                Tk {monthIncome.toFixed(2)}
               </p>
             </div>
 
-            {/* Expenses */}
             <div className="border-l-4 border-red-500 pl-4">
-              <p className="text-gray-600 text-sm">Total Expenses</p>
-              <p className="text-3xl font-bold text-red-600">
-                Tk {monthlyExpenseTotal.toFixed(2)}
+              <p className="text-gray-600">Total Expenses</p>
+              <p className="text-2xl font-bold text-red-600">
+                Tk {monthExpense.toFixed(2)}
               </p>
             </div>
 
-            {/* Net Profit */}
             <div
-              className={`border-l-4 ${
-                monthlyTotal - monthlyExpenseTotal >= 0
+              className={`border-l-4 pl-4 ${
+                monthIncome - monthExpense >= 0
                   ? "border-green-500"
                   : "border-red-500"
-              } pl-4`}
+              }`}
             >
-              <p className="text-gray-600 text-sm">Net Profit</p>
+              <p className="text-gray-600">Net Profit</p>
               <p
-                className={`text-3xl font-bold ${
-                  monthlyTotal - monthlyExpenseTotal >= 0
+                className={`text-2xl font-bold ${
+                  monthIncome - monthExpense >= 0
                     ? "text-green-600"
                     : "text-red-600"
                 }`}
               >
-                Tk {(monthlyTotal - monthlyExpenseTotal).toFixed(2)}
+                Tk {(monthIncome - monthExpense).toFixed(2)}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Monthly Profits Table */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Monthly Profits History</h2>
+        {/* ========== MONTHLY PROFIT TABLE ========== */}
+        <div className="bg-white shadow-md rounded-lg p-4 mb-6">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold">Monthly Profit History</h2>
             <button
-              onClick={() => calculateProfit()}
-              disabled={loading}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
+              onClick={() => calculateProfit(selectedDate)}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
             >
-              {loading
-                ? "Calculating..."
-                : `Calculate Profit - ${format(selectedDate, "MMM yyyy")}`}
+              Calculate
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b">
-                  <th className="px-4 py-3 text-left font-semibold">Ship</th>
-                  <th className="px-4 py-3 text-left font-semibold">Month</th>
-                  <th className="px-4 py-3 text-right font-semibold">Income</th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Expenses
-                  </th>
-                  <th className="px-4 py-3 text-right font-semibold">
-                    Net Profit
-                  </th>
-                  <th className="px-4 py-3 text-center font-semibold">Trend</th>
+            <table className="min-w-[700px] w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-3 py-2 text-left">Ship</th>
+                  <th className="px-3 py-2 text-left">Month</th>
+                  <th className="px-3 py-2 text-right">Income</th>
+                  <th className="px-3 py-2 text-right">Expenses</th>
+                  <th className="px-3 py-2 text-right">Net Profit</th>
+                  <th className="px-3 py-2 text-center">Trend</th>
                 </tr>
               </thead>
+
               <tbody>
-                {Array.isArray(monthlyProfits) && monthlyProfits.length > 0 ? (
-                  monthlyProfits.map((profit, idx) => {
+                {profitList.length === 0 ? (
+                  <tr>
+                    <td className="px-3 py-2 text-gray-600" colSpan="6">
+                      No records found
+                    </td>
+                  </tr>
+                ) : (
+                  profitList.map((p, index) => {
                     const prevProfit =
-                      idx > 0
-                        ? monthlyProfits[idx - 1]?.net_profit
-                        : profit.net_profit;
-                    const profitTrend = profit.net_profit - prevProfit;
+                      index > 0
+                        ? profitList[index - 1].net_profit
+                        : p.net_profit;
+
+                    const trend = p.net_profit - prevProfit;
+
                     return (
-                      <tr key={profit.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3">{profit.ship_name}</td>
-                        <td className="px-4 py-3">
-                          {format(new Date(profit.month), "MMM yyyy")}
+                      <tr key={p.id} className="border-b">
+                        <td className="px-3 py-2">{p.ship_name}</td>
+                        <td className="px-3 py-2">
+                          {format(new Date(p.month), "MMM yyyy")}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          Tk {parseFloat(profit.total_income || 0).toFixed(2)}
+                        <td className="px-3 py-2 text-right">
+                          Tk {parseFloat(p.total_income).toFixed(2)}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          Tk {parseFloat(profit.total_expenses || 0).toFixed(2)}
+                        <td className="px-3 py-2 text-right">
+                          Tk {parseFloat(p.total_expenses).toFixed(2)}
                         </td>
                         <td
-                          className={`px-4 py-3 text-right font-semibold ${
-                            profit.net_profit >= 0
+                          className={`px-3 py-2 text-right ${
+                            p.net_profit >= 0
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
                         >
-                          Tk {parseFloat(profit.net_profit || 0).toFixed(2)}
+                          Tk {parseFloat(p.net_profit).toFixed(2)}
                         </td>
-                        <td className="px-4 py-3 text-center">
+
+                        <td className="px-3 py-2 text-center">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold ${
-                              profitTrend >= 0
+                            className={`px-2 py-1 rounded text-xs ${
+                              trend >= 0
                                 ? "bg-green-100 text-green-700"
                                 : "bg-red-100 text-red-700"
                             }`}
                           >
-                            {profitTrend >= 0 ? "↑" : "↓"}{" "}
-                            {Math.abs(profitTrend).toFixed(0)}
+                            {trend >= 0 ? "↑" : "↓"}{" "}
+                            {Math.abs(trend).toFixed(0)}
                           </span>
                         </td>
                       </tr>
                     );
                   })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="6"
-                      className="px-4 py-3 text-center text-gray-500"
-                    >
-                      No profit data available. Click "Calculate" to generate
-                      profit reports.
-                    </td>
-                  </tr>
                 )}
               </tbody>
             </table>
