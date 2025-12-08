@@ -6,6 +6,7 @@ export default function DailyIncomeForm() {
   const emptyForm = {
     ship: "",
     amount: "",
+    project: "",
     date: "",
     description: "",
     is_active: true,
@@ -18,10 +19,12 @@ export default function DailyIncomeForm() {
   const [ships, setShips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [projects, setProjects] = useState([]);
 
   useEffect(() => {
     fetchShips();
     fetchIncomes();
+    fetchProjects();
   }, []);
 
   const fetchShips = async () => {
@@ -47,6 +50,13 @@ export default function DailyIncomeForm() {
     }
   };
 
+  const fetchProjects = async () => {
+  const res = await api.get("projects/");
+  setProjects(Array.isArray(res.data) ? res.data : res.data.results || []);
+};
+
+  
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -68,6 +78,7 @@ export default function DailyIncomeForm() {
   const handleEdit = (item) => {
     setFormData({
       ship: item.ship || "",
+      project: item.project || "",
       amount: item.amount,
       date: item.date,
       description: item.description || "",
@@ -101,7 +112,7 @@ export default function DailyIncomeForm() {
       }
       amount = Math.round(amount * 100) / 100;
 
-      const payload = { ...formData, amount };
+      const payload = { ...formData, amount, project: formData.project || null };
 
       if (editingId) {
         await api.put(`incomes/${editingId}/`, payload);
@@ -161,6 +172,20 @@ export default function DailyIncomeForm() {
             {ships.map((ship) => (
               <option key={ship.id} value={ship.id}>
                 {ship.name}
+              </option>
+            ))}
+          </select>
+          <select
+            name="project"
+            className="w-full p-2 rounded bg-white/70 text-black"
+            value={formData.project}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Project</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
               </option>
             ))}
           </select>

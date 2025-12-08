@@ -107,7 +107,17 @@ export default function ProjectForm() {
         budget = Math.round(budget * 100) / 100;
       }
 
-      const payload = { ...formData, budget };
+      const payload = {
+  name: formData.name,
+  ship: formData.ship || null,
+  budget: budget ?? null,
+  start_date: formData.start_date,
+  end_date: formData.end_date || null,
+  status: formData.status || null,
+  is_active: formData.is_active,
+  daily_rate: formData.daily_rate || 0,   // ← ADD THIS LINE
+};
+
 
       if (editingId) {
         await api.put(`projects/${editingId}/`, payload);
@@ -188,7 +198,16 @@ export default function ProjectForm() {
             value={formData.budget}
             onChange={handleChange}
           />
-
+<input
+  name="daily_rate"
+  type="number"
+  step="0.01"
+  placeholder="Daily Rate (Tk)"
+  className="w-full p-2 rounded bg-white/70 text-black"
+  value={formData.daily_rate || ""}
+  onChange={handleChange}
+  required
+/>
           <input
             type="date"
             name="start_date"
