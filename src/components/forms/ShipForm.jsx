@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import api from "../../api/axios";
 
 export default function ShipForm() {
-  const [formData, setFormData] = useState({
+  const emptyForm = {
     name: "",
     purchase_cost: "",
     purchase_date: "",
     is_active: true,
-  });
+  };
 
+  const [formData, setFormData] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(true);
   const [ships, setShips] = useState([]);
@@ -41,12 +42,7 @@ export default function ShipForm() {
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      purchase_cost: "",
-      purchase_date: "",
-      is_active: true,
-    });
+    setFormData(emptyForm);
     setEditingId(null);
   };
 
@@ -56,58 +52,43 @@ export default function ShipForm() {
   };
 
   const handleEdit = (ship) => {
-    setFormData(ship);
+    setFormData({
+      name: ship.name,
+      purchase_cost: ship.purchase_cost,
+      purchase_date: ship.purchase_date,
+      is_active: ship.is_active,
+    });
     setEditingId(ship.id);
     setShowForm(true);
   };
 
   const handleDelete = async (shipId) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this ship? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+    if (!window.confirm("Delete this ship?")) return;
+
     try {
       await api.delete(`ships/${shipId}/`);
       alert("Ship deleted successfully!");
       fetchShips();
     } catch (err) {
-      console.error("Delete error:", err);
-      alert(
-        "Error deleting ship: " + (err.response?.data?.detail || err.message)
-      );
+      alert("Delete failed: " + err.message);
     }
   };
 
   const submit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    try {
-      // Ensure purchase_cost is sent as a number (no commas) and validate integer digits
-      let cost =
-        formData.purchase_cost === ""
-          ? null
-          : parseFloat(String(formData.purchase_cost));
 
-      if (cost !== null) {
-        if (isNaN(cost) || cost <= 0) {
-          alert("Purchase cost must be a positive number.");
-          setSubmitting(false);
-          return;
-        }
-        const integerDigits = Math.floor(Math.abs(cost)).toString().length;
-        if (integerDigits > 8) {
-          alert(
-            "Purchase cost has too many digits before the decimal. Maximum 8 digits allowed (e.g. 99999999.99)."
-          );
-          setSubmitting(false);
-          return;
-        }
-        // Round to two decimals to match backend DecimalField
-        cost = Math.round(cost * 100) / 100;
+    try {
+      let rawCost = String(formData.purchase_cost).replace(/,/g, "");
+      let cost = rawCost ? parseFloat(rawCost) : null;
+
+      if (!cost || cost <= 0) {
+        alert("Cost must be a positive number.");
+        setSubmitting(false);
+        return;
       }
+
+      cost = Math.round(cost * 100) / 100;
 
       const payload = { ...formData, purchase_cost: cost };
 
@@ -118,16 +99,12 @@ export default function ShipForm() {
         await api.post("ships/", payload);
         alert("Ship created!");
       }
+
       resetForm();
       fetchShips();
       setShowForm(false);
     } catch (err) {
-      console.error("Ship create error:", err.response || err);
-      const serverData = err.response?.data;
-      const message = serverData
-        ? JSON.stringify(serverData)
-        : err.response?.data?.detail || err.message;
-      alert("Error creating ship: " + message);
+      alert("Error: " + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -135,25 +112,39 @@ export default function ShipForm() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center p-6"
+      className="min-h-screen p-6 bg-cover bg-center relative"
       style={{
         backgroundImage: `url(/titanic-iceberg.jpg)`,
       }}
     >
-      <div className="absolute inset-0 bg-black/30"></div>
+      <div className="absolute inset-0 bg-black/40"></div>
+
+      {/* CONTENT */}
       {showForm ? (
         <form
           onSubmit={submit}
-          className="relative max-w-lg mx-auto space-y-4 p-6 bg-white shadow-lg rounded"
+          className="relative glass-card max-w-lg mx-auto p-6 space-y-4 text-white"
         >
-          <h2 className="text-xl font-semibold">
-            {editingId ? "Edit Ship" : "Add Ship"}
-          </h2>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
+              {editingId ? "Edit Ship" : "Add Ship"}
+            </h2>
+
+            {/* Mobile Back */}
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="md:hidden underline text-sm"
+            >
+              Back
+            </button>
+          </div>
 
           <input
             name="name"
             placeholder="Ship Name"
-            className="w-full border p-2 rounded"
+            className="w-full p-2 rounded bg-white/70 text-black"
             value={formData.name}
             onChange={handleChange}
             required
@@ -161,12 +152,10 @@ export default function ShipForm() {
 
           <input
             name="purchase_cost"
-            placeholder="Purchase Cost (Tk) — max 8 digits before decimal"
+            placeholder="Purchase Cost (Tk)"
             type="number"
             step="0.01"
-            min="0"
-            max="99999999.99"
-            className="w-full border p-2 rounded"
+            className="w-full p-2 rounded bg-white/70 text-black"
             value={formData.purchase_cost}
             onChange={handleChange}
             required
@@ -175,13 +164,13 @@ export default function ShipForm() {
           <input
             type="date"
             name="purchase_date"
-            className="w-full border p-2 rounded"
+            className="w-full p-2 rounded bg-white/70 text-black"
             value={formData.purchase_date}
             onChange={handleChange}
             required
           />
 
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-white">
             <input
               type="checkbox"
               name="is_active"
@@ -195,79 +184,126 @@ export default function ShipForm() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 bg-blue-600 text-white py-2 rounded"
+              className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-semibold"
             >
               {submitting ? "Saving..." : editingId ? "Update" : "Submit"}
             </button>
             <button
               type="button"
               onClick={handleCancel}
-              className="flex-1 bg-gray-500 text-white py-2 rounded"
+              className="flex-1 py-2 bg-gray-600 hover:bg-gray-700 rounded text-white font-semibold"
             >
               Cancel
             </button>
           </div>
         </form>
       ) : (
-        <div className="relative max-w-4xl mx-auto p-6 bg-white shadow-lg rounded">
+        <div className="relative glass-card max-w-4xl mx-auto p-6 text-white">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Ships List</h2>
+            <h2 className="text-xl font-bold">Ships List</h2>
             <button
               onClick={() => {
                 resetForm();
                 setShowForm(true);
               }}
-              className="bg-green-600 text-white px-4 py-2 rounded"
+              className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded"
             >
               + Add New Ship
             </button>
           </div>
+
           {loading ? (
             <p>Loading...</p>
           ) : ships.length === 0 ? (
             <p>No ships found.</p>
           ) : (
-            <table className="w-full border-collapse border border-gray-300">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border border-gray-300 p-2">Name</th>
-                  <th className="border border-gray-300 p-2">Purchase Cost</th>
-                  <th className="border border-gray-300 p-2">Purchase Date</th>
-                  <th className="border border-gray-300 p-2">Status</th>
-                  <th className="border border-gray-300 p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+            <>
+              {/* DESKTOP TABLE */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-white min-w-[700px]">
+                  <thead className="bg-white/20">
+                    <tr>
+                      <th className="p-2 text-left">Name</th>
+                      <th className="p-2 text-left">Cost</th>
+                      <th className="p-2 text-left">Purchase Date</th>
+                      <th className="p-2 text-left">Status</th>
+                      <th className="p-2 text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ships.map((ship) => (
+                      <tr key={ship.id} className="hover:bg-white/10">
+                        <td className="p-2">{ship.name}</td>
+                        <td className="p-2">
+                          Tk {parseFloat(ship.purchase_cost).toFixed(2)}
+                        </td>
+                        <td className="p-2">{ship.purchase_date}</td>
+                        <td className="p-2">
+                          {ship.is_active ? "Active" : "Inactive"}
+                        </td>
+                        <td className="p-2 text-center space-x-2">
+                          <button
+                            onClick={() => handleEdit(ship)}
+                            className="px-3 py-1 bg-blue-500 rounded"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(ship.id)}
+                            className="px-3 py-1 bg-red-500 rounded"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* MOBILE CARDS */}
+              <div className="md:hidden space-y-4">
                 {ships.map((ship) => (
-                  <tr key={ship.id}>
-                    <td className="border border-gray-300 p-2">{ship.name}</td>
-                    <td className="border border-gray-300 p-2">
-                      Tk {parseFloat(ship.purchase_cost).toFixed(2)}
-                    </td>
-                    <td className="border border-gray-300 p-2">
+                  <div
+                    key={ship.id}
+                    className="glass-card p-4 text-white rounded-lg shadow-md"
+                  >
+                    <h3 className="text-lg font-semibold mb-2">{ship.name}</h3>
+
+                    <p>
+                      <span className="font-semibold">Cost:</span> Tk{" "}
+                      {parseFloat(ship.purchase_cost).toFixed(2)}
+                    </p>
+
+                    <p>
+                      <span className="font-semibold">Purchase Date:</span>{" "}
                       {ship.purchase_date}
-                    </td>
-                    <td className="border border-gray-300 p-2">
+                    </p>
+
+                    <p>
+                      <span className="font-semibold">Status:</span>{" "}
                       {ship.is_active ? "Active" : "Inactive"}
-                    </td>
-                    <td className="border border-gray-300 p-2">
+                    </p>
+
+                    <div className="flex gap-2 mt-4">
                       <button
                         onClick={() => handleEdit(ship)}
-                        className="bg-blue-500 text-white px-2 py-1 rounded text-sm mr-2"
+                        className="flex-1 bg-blue-500 text-white py-1 rounded"
                       >
                         Edit
                       </button>
+
                       <button
                         onClick={() => handleDelete(ship.id)}
-                        className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                        className="flex-1 bg-red-500 text-white py-1 rounded"
                       >
                         Delete
                       </button>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </>
           )}
         </div>
       )}
