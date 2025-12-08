@@ -8,25 +8,26 @@ const PartnerReport = () => {
   );
   const [partners, setPartners] = useState([]);
   const [ships, setShips] = useState([]);
-  const [monthlyProfits, setMonthlyProfits] = useState([]);
+  const [incomes, setIncomes] = useState([]);
+  const [expenses, setExpenses] = useState([]);
 
+  // Fetch all data
   useEffect(() => {
     fetchShips();
     fetchPartners();
-    fetchMonthlyProfits();
+    fetchIncomes();
+    fetchExpenses();
   }, [selectedMonth]);
 
   const fetchShips = async () => {
     try {
       const response = await api.get("ships/");
       const data = response.data;
-
       const shipList = Array.isArray(data)
         ? data
         : Array.isArray(data.results)
         ? data.results
         : [];
-
       setShips(shipList);
     } catch (error) {
       console.error("Error fetching ships:", error);
@@ -38,13 +39,11 @@ const PartnerReport = () => {
     try {
       const res = await api.get("partners/");
       const data = res.data;
-
       const partnerList = Array.isArray(data)
         ? data
         : Array.isArray(data.results)
         ? data.results
         : [];
-
       setPartners(partnerList);
     } catch (error) {
       console.error("Error fetching partners:", error);
@@ -52,54 +51,98 @@ const PartnerReport = () => {
     }
   };
 
-  const fetchMonthlyProfits = async () => {
+  const fetchIncomes = async () => {
     try {
-      const res = await api.get("profits/");
+      const res = await api.get("incomes/");
       const data = res.data;
-
-      // Handle array OR paginated "results" format
-      const profitData = Array.isArray(data)
+      const incomeList = Array.isArray(data)
         ? data
         : Array.isArray(data.results)
         ? data.results
         : [];
-
-      setMonthlyProfits(profitData);
+      setIncomes(incomeList);
     } catch (error) {
-      console.error("Error fetching monthly profits:", error);
-      setMonthlyProfits([]);
+      console.error("Error fetching incomes:", error);
+      setIncomes([]);
     }
   };
 
-  const filteredProfits = Array.isArray(monthlyProfits)
-    ? monthlyProfits.filter((p) => p.month?.startsWith(selectedMonth))
-    : [];
+  const fetchExpenses = async () => {
+    try {
+      const res = await api.get("expenses/");
+      const data = res.data;
+      const expenseList = Array.isArray(data)
+        ? data
+        : Array.isArray(data.results)
+        ? data.results
+        : [];
+      setExpenses(expenseList);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      setExpenses([]);
+    }
+  };
+
+  // Calculate net income for a specific ship and month
+  const calculateShipIncome = (shipId) => {
+    // Create date range for the selected month
+    const startDate = new Date(selectedMonth + "-01");
+    const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
+    
+    // Filter incomes for this ship and month
+    const shipIncomes = incomes.filter(income => {
+      if (income.ship !== shipId) return false;
+      const incomeDate = new Date(income.date);
+      return incomeDate >= startDate && incomeDate <= endDate;
+    });
+    
+    // Filter expenses for this ship and month
+    const shipExpenses = expenses.filter(expense => {
+      if (expense.ship !== shipId) return false;
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate && expenseDate <= endDate;
+    });
+    
+    // Calculate total income
+    const totalIncome = shipIncomes.reduce((sum, income) => 
+      sum + parseFloat(income.amount || 0), 0);
+    
+    // Calculate total expenses
+    const totalExpenses = shipExpenses.reduce((sum, expense) => 
+      sum + parseFloat(expense.amount || 0), 0);
+    
+    // Net income = total income - total expenses
+    return totalIncome - totalExpenses;
+  };
 
   const slips = [];
 
   ships.forEach((ship) => {
-    const shipProfit = filteredProfits.find((p) => p.ship === ship.id);
-    const income = shipProfit ? shipProfit.net_profit : 0;
-    const benefit = (income / ship.purchase_cost) * 100000;
+    // Calculate income directly
+    const income = calculateShipIncome(ship.id);
+    const purchaseCost = parseFloat(ship.purchase_cost || 0);
+    
+    // Benefit per 1 lac (100,000)
+    const benefit = purchaseCost ? (income / purchaseCost) * 100000 : 0;
 
     const shipPartners = partners.filter((p) => p.ship === ship.id);
 
     shipPartners.forEach((p) => {
-      const shareAmount =
-        (ship.purchase_cost * (p.share_percentage || 0)) / 100;
-
-      const payable = ship.purchase_cost
-        ? (income / ship.purchase_cost) * shareAmount
+      const shareAmount = purchaseCost 
+        ? (purchaseCost * (parseFloat(p.share_percentage || 0))) / 100 
         : 0;
+
+      // Payable amount = partner's share percentage of net income
+      const payable = (income * (parseFloat(p.share_percentage || 0))) / 100;
 
       slips.push({
         shipName: ship.name,
-        purchaseCost: ship.purchase_cost,
+        purchaseCost: purchaseCost,
         partnerName: p.name,
-        shareAmount,
-        income,
-        benefit,
-        payable,
+        shareAmount: shareAmount,
+        income: income,
+        benefit: benefit,
+        payable: payable,
       });
     });
   });
@@ -107,7 +150,7 @@ const PartnerReport = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="bg-white p-6 rounded shadow print:shadow-none">
-        {/* Header */}
+        {/* Header - EXACTLY as you had it */}
         <div className="flex justify-between mb-6">
           <h1 className="text-2xl font-bold">Partner Slips</h1>
 
@@ -127,22 +170,25 @@ const PartnerReport = () => {
           </div>
         </div>
 
-        {/* Slip Grid */}
+        {/* Slip Grid - EXACTLY as you had it, just fixed the data */}
         <div id="print-area" className="grid grid-cols-3 gap-4">
           {slips.map((slip, index) => (
             <div
               key={index}
-              className="border p-3 rounded shadow-sm text-sm h-48 flex flex-col justify-between print-slip"
+              className="border p-3 rounded shadow-sm text-sm h-52 flex flex-col justify-between print-slip"
             >
               <div>
+                 <p className="text-start text-xl text-gray-600 mb-2">
+                  {format(new Date(selectedMonth + "-01"), "MMMM yyyy")}
+                </p>
                 <p>
                   <strong>Ship Name:</strong> {slip.shipName}
                 </p>
                 <p>
-                  <strong>Purchase Cost:</strong> {slip.purchaseCost}
+                  <strong>Purchase Cost:</strong> {slip.purchaseCost.toFixed(2)}
                 </p>
 
-                <p className="bg-purple-500 text-white text-center">
+                <p className="bg-purple-500 text-black">
                   <strong>Partner Name:</strong> {slip.partnerName}
                 </p>
                 <p>
@@ -150,14 +196,14 @@ const PartnerReport = () => {
                 </p>
 
                 <p>
-                  <strong>Income:</strong> {slip.income}
+                  <strong>Income:</strong> {slip.income.toFixed(2)}
                 </p>
                 <p>
                   <strong>Benefit/1 Lac:</strong> {slip.benefit.toFixed(2)}
                 </p>
               </div>
 
-              <p className="font-bold text-center  text-gray-800 bg-gray-300">
+              <p className="font-bold text-center text-gray-800 bg-gray-300 mt-2">
                 Payable: Tk {slip.payable.toFixed(2)}
               </p>
             </div>

@@ -151,6 +151,20 @@ export default function PartnerForm() {
               Back
             </button>
           </div>
+          <select
+            name="ship"
+            className="w-full p-2 rounded bg-white/70 text-black"
+            value={formData.ship}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Ship</option>
+            {ships.map((ship) => (
+              <option key={ship.id} value={ship.id}>
+                {ship.name}
+              </option>
+            ))}
+          </select>
 
           <input
             name="name"
@@ -190,21 +204,6 @@ export default function PartnerForm() {
             onChange={handleChange}
             required
           />
-
-          <select
-            name="ship"
-            className="w-full p-2 rounded bg-white/70 text-black"
-            value={formData.ship}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select Ship</option>
-            {ships.map((ship) => (
-              <option key={ship.id} value={ship.id}>
-                {ship.name}
-              </option>
-            ))}
-          </select>
 
           <label className="flex items-center gap-2 text-white">
             <input
