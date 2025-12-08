@@ -7,7 +7,10 @@ import {
   endOfMonth,
   eachDayOfInterval,
 } from "date-fns";
+// ===============================================
+// Profit History
 
+// ==============================================
 /* ============================================================
    RESPONSIVE BAR CHART (Scrolls on Mobile)
    ============================================================ */
@@ -328,10 +331,8 @@ const Dashboard = () => {
         </div>
 
         {/* ========== BAR CHART ========== */}
-        <div className="bg-white shadow-md rounded-lg p-4 mb-6 w-[calc(100vw-4rem)] sm:w-full sm:ml-0">
-          <h2 className="text-xl font-semibold mb-4">
-            Daily Income Chart
-          </h2>
+        <div className="bg-white hidden md:block shadow-md rounded-lg p-4 mb-6 w-[calc(100vw-4rem)] sm:w-full sm:ml-0">
+          <h2 className="text-xl font-semibold mb-4">Daily Income Chart</h2>
 
           <BarChartComponent
             ships={ships}
@@ -383,19 +384,20 @@ const Dashboard = () => {
         </div>
 
         {/* ========== MONTHLY PROFIT TABLE ========== */}
-        <div className="bg-white shadow-md rounded-lg p-4 mb-6">
+        <div className="bg-white hidden md:block shadow-md rounded-lg p-4 mb-6">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold">Monthly Profit History</h2>
             <button
               onClick={() => calculateProfit(selectedDate)}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
+              className="px-4 py-2 bg-blue-600 text-white rounded text-sm md:text-base"
             >
               Calculate
             </button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-[700px] w-full text-sm">
+          {/* Desktop Table (hidden on mobile) */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="min-w-full w-full text-sm">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-3 py-2 text-left">Ship</th>
@@ -406,63 +408,73 @@ const Dashboard = () => {
                   <th className="px-3 py-2 text-center">Trend</th>
                 </tr>
               </thead>
+              <tbody>{/* Your table rows here */}</tbody>
+            </table>
+          </div>
 
-              <tbody>
-                {profitList.length === 0 ? (
-                  <tr>
-                    <td className="px-3 py-2 text-gray-600" colSpan="6">
-                      No records found
-                    </td>
-                  </tr>
-                ) : (
-                  profitList.map((p, index) => {
-                    const prevProfit =
-                      index > 0
-                        ? profitList[index - 1].net_profit
-                        : p.net_profit;
+          {/* Mobile Cards (visible only on mobile) */}
+          <div className="md:hidden space-y-4">
+            {profitList.length === 0 ? (
+              <div className="text-gray-600 text-center py-4">
+                No records found
+              </div>
+            ) : (
+              profitList.map((p, index) => {
+                const prevProfit =
+                  index > 0 ? profitList[index - 1].net_profit : p.net_profit;
+                const trend = p.net_profit - prevProfit;
 
-                    const trend = p.net_profit - prevProfit;
+                return (
+                  <div key={p.id} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{p.ship_name}</span>
+                      <span className="text-sm text-gray-600">
+                        {format(new Date(p.month), "MMM yyyy")}
+                      </span>
+                    </div>
 
-                    return (
-                      <tr key={p.id} className="border-b">
-                        <td className="px-3 py-2">{p.ship_name}</td>
-                        <td className="px-3 py-2">
-                          {format(new Date(p.month), "MMM yyyy")}
-                        </td>
-                        <td className="px-3 py-2 text-right">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-gray-600">Income:</span>
+                        <span className="ml-2">
                           Tk {parseFloat(p.total_income).toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right">
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Expenses:</span>
+                        <span className="ml-2">
                           Tk {parseFloat(p.total_expenses).toFixed(2)}
-                        </td>
-                        <td
-                          className={`px-3 py-2 text-right ${
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Net Profit:</span>
+                        <span
+                          className={`ml-2 ${
                             p.net_profit >= 0
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
                         >
                           Tk {parseFloat(p.net_profit).toFixed(2)}
-                        </td>
-
-                        <td className="px-3 py-2 text-center">
-                          <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              trend >= 0
-                                ? "bg-green-100 text-green-700"
-                                : "bg-red-100 text-red-700"
-                            }`}
-                          >
-                            {trend >= 0 ? "↑" : "↓"}{" "}
-                            {Math.abs(trend).toFixed(0)}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Trend:</span>
+                        <span
+                          className={`ml-2 px-2 py-1 rounded text-xs ${
+                            trend >= 0
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {trend >= 0 ? "↑" : "↓"} {Math.abs(trend).toFixed(0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </div>

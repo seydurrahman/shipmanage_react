@@ -89,7 +89,7 @@ const Sidebar = ({ isOpen, closeSidebar }) => {
           </div>
 
           {/* REPORTS MENU */}
-          <div>
+          <div className="hidden md:block">
             <button
               type="button"
               onClick={() => setOpenReports(!openReports)}
