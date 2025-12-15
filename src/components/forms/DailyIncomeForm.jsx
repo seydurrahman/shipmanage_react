@@ -271,9 +271,11 @@ export default function DailyIncomeForm() {
                 <table className="w-full text-white min-w-[800px]">
                   <thead className="bg-white/20">
                     <tr>
-                      <th className="p-2 text-left">Ship</th>
-                      <th className="p-2 text-left">Amount</th>
                       <th className="p-2 text-left">Date</th>
+                      <th className="p-2 text-left">Ship</th>
+                      <th className="p-2 text-left">Rate</th>
+                      <th className="p-2 text-left">Sands Amount</th>
+                      <th className="p-2 text-left">Amount</th>
                       <th className="p-2 text-left">Description</th>
                       <th className="p-2 text-left">Status</th>
                       <th className="p-2 text-center">Actions</th>
